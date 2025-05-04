@@ -62,7 +62,7 @@ function App() {
     }
   }
 
-  //
+  // moves to next story on screen tap
   const handleNextStory = () => {
     if (!activeStory) return
 
@@ -76,6 +76,7 @@ function App() {
     }
   }
 
+  // moves to previous story on screen tap
   const handlePreviousStory = () => {
     if (!activeStory) return
 
