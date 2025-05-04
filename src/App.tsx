@@ -1,34 +1,105 @@
 import { useState } from "react"
-import reactLogo from "./assets/react.svg"
-import viteLogo from "/vite.svg"
-import "./App.css"
+
+import { useIsMobile } from "./hooks/useIsMobile"
+import { NonMobileScreen } from "./components/nonMobileScreen"
+import { IStory } from "./lib/types"
+import { StoryBar } from "./components/storyBar"
+import { StoryViewer } from "./components/storyViewer"
+import { storiesData } from "./lib/data"
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { isMobile } = useIsMobile()
+  const [stories, setStories] = useState<IStory[]>(storiesData)
+  const [activeStory, setActiveStory] = useState<IStory | null>(null)
+  const [showStoryViewer, setShowStoryViewer] = useState<boolean>(false)
+
+  // when not on mobile
+  if (!isMobile) return <NonMobileScreen />
+
+  // function to handle opening a story
+  const handleStoryOpen = (story: IStory) => {
+    setShowStoryViewer(true)
+    setActiveStory(story)
+  }
+
+  // function to mark story as viewed
+  const handleStoryView = (viewedStory: IStory) => {
+    const updatedStories = stories.map((story) =>
+      story.id === viewedStory.id ? { ...story, isViewed: true } : story
+    )
+    setStories(updatedStories)
+  }
+
+  // function to handle manual close button
+  const handleManualClose = () => {
+    if (activeStory) {
+      handleStoryView(activeStory)
+    }
+    setShowStoryViewer(false)
+    setActiveStory(null)
+  }
+
+  // function to handle automatic progression after timer complete
+  const handleStoryCompleted = () => {
+    if (activeStory) {
+      const currentStoryId = activeStory.id
+      handleStoryView(activeStory)
+
+      // finds the next unviewed story if available
+      const unviewedStories = stories.filter(
+        (story) => !story.isViewed && story.id !== currentStoryId
+      )
+
+      // move to the next unviewed story or close the viewer
+      if (unviewedStories.length > 0) setActiveStory(unviewedStories[0])
+      else {
+        setActiveStory(null)
+        setShowStoryViewer(false)
+      }
+    } else {
+      setActiveStory(null)
+      setShowStoryViewer(false)
+    }
+  }
+
+  // moves to next story on screen tap
+  const handleNextStory = () => {
+    if (!activeStory) return
+
+    const currentIdx = stories.findIndex((story) => story.id === activeStory.id)
+
+    if (currentIdx < stories.length - 1) {
+      setActiveStory(stories[currentIdx + 1])
+    } else {
+      setShowStoryViewer(false)
+      setActiveStory(null)
+    }
+  }
+
+  // moves to previous story on screen tap
+  const handlePreviousStory = () => {
+    if (!activeStory) return
+
+    const currentIndex = stories.findIndex((story) => story.id === activeStory.id)
+
+    if (currentIndex > 0) {
+      setActiveStory(stories[currentIndex - 1])
+    }
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <main className="flex h-screen">
+      <StoryBar onStoryOpen={handleStoryOpen} stories={stories} />
+      {showStoryViewer && activeStory ? (
+        <StoryViewer
+          story={activeStory}
+          onClose={handleManualClose}
+          onCompleted={handleStoryCompleted}
+          onNext={handleNextStory}
+          onPrevious={handlePreviousStory}
+        />
+      ) : null}
+    </main>
   )
 }
 
